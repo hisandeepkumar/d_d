@@ -4,10 +4,20 @@
   <meta charset="UTF-8">
   <title>Telegram File Sync</title>
   <style>
+    :root {
+      --bg-color: #121212;
+      --text-color: white;
+      --drop-zone-border: #4caf50;
+      --progress-bg: #333;
+      --progress-bar: #4caf50;
+      --file-item-bg: #1e1e1e;
+      --btn-bg: #4caf50;
+      --btn-text: white;
+    }
     body {
       font-family: sans-serif;
-      background: #121212;
-      color: white;
+      background: var(--bg-color);
+      color: var(--text-color);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -16,59 +26,153 @@
       margin: 0;
       padding-top: 40px;
     }
+    body.light {
+      --bg-color: #ffffff;
+      --text-color: #000000;
+      --file-item-bg: #f0f0f0;
+      --progress-bg: #ddd;
+    }
     .drop-zone {
-      border: 2px dashed #4caf50;
+      border: 2px dashed var(--drop-zone-border);
       padding: 30px;
       text-align: center;
       border-radius: 10px;
       width: 90%;
       max-width: 500px;
-      background: #1e1e1e;
+      background: var(--file-item-bg);
       cursor: pointer;
     }
     .custom-upload-btn {
-      background: #4caf50;
-      color: white;
+      background: var(--btn-bg);
+      color: var(--btn-text);
       border: none;
       padding: 10px 20px;
       margin-top: 10px;
       border-radius: 8px;
       cursor: pointer;
     }
-    .progress {
+    .progress-container {
       width: 100%;
       max-width: 500px;
-      height: 8px;
-      background: #333;
-      border-radius: 4px;
       margin-top: 20px;
+    }
+    .progress {
+      width: 100%;
+      height: 8px;
+      background: var(--progress-bg);
+      border-radius: 4px;
       overflow: hidden;
     }
     .bar {
       width: 0%;
       height: 100%;
-      background: #4caf50;
+      background: var(--progress-bar);
+    }
+    .file-list {
+      margin-top: 20px;
+      width: 90%;
+      max-width: 500px;
+    }
+    .file-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      background: var(--file-item-bg);
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    .file-name {
+      flex: 1;
+      margin-right: 10px;
+    }
+    .download-btn {
+      background: var(--btn-bg);
+      color: var(--btn-text);
+      border: none;
+      padding: 5px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .search-bar {
+      margin-top: 20px;
+      width: 90%;
+      max-width: 500px;
+    }
+    .search-input {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--drop-zone-border);
+      background: var(--file-item-bg);
+      color: var(--text-color);
+    }
+    .theme-toggle {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+    }
+    .theme-toggle button {
+      background: var(--btn-bg);
+      color: var(--btn-text);
+      border: none;
+      padding: 5px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .category-select {
+      margin-top: 10px;
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--drop-zone-border);
+      background: var(--file-item-bg);
+      color: var(--text-color);
+    }
+    .file-preview {
+      margin-top: 10px;
+      max-width: 100%;
+      max-height: 200px;
     }
   </style>
 </head>
 <body>
+  <div class="theme-toggle">
+    <button onclick="toggleTheme()">Toggle Theme</button>
+  </div>
   <h2>📁 Telegram File Sharing System</h2>
   <div class="drop-zone" id="dropZone">
     <p>Drop files here or click to upload</p>
-    <button class="custom-upload-btn" onclick="document.getElementById('fileInput').click()">Upload File</button>
-    <input type="file" id="fileInput" hidden>
+    <button class="custom-upload-btn" onclick="document.getElementById('fileInput').click()">Upload Files</button>
+    <input type="file" id="fileInput" multiple hidden>
+    <select class="category-select" id="categorySelect">
+      <option value="general">General</option>
+      <option value="images">Images</option>
+      <option value="documents">Documents</option>
+      <option value="videos">Videos</option>
+    </select>
   </div>
 
-  <div class="progress">
-    <div class="bar" id="progressBar"></div>
+  <div class="progress-container" id="progressContainer"></div>
+
+  <div class="search-bar">
+    <input type="text" class="search-input" id="searchInput" placeholder="Search files...">
+  </div>
+
+  <div class="file-list" id="fileList">
+    <h3>Available Files</h3>
   </div>
 
   <script>
-    const botToken = '7743009303:AAEfCdb2kU3xjZHbU-mo_qUbP3wA4aejDRo';
-    const chatId = '878604830'; // your bot's target channel or user ID
+    const botToken = '7743009303:AAEfCdb2kU3xjZHbU-mo_qUbP3wA4aejDRo'; // अपने बॉट टोकन से बदलें
+    const chatId = '878604830'; // अपने चैट ID से बदलें
     const fileInput = document.getElementById('fileInput');
-    const progressBar = document.getElementById('progressBar');
+    const categorySelect = document.getElementById('categorySelect');
+    const progressContainer = document.getElementById('progressContainer');
+    const fileList = document.getElementById('fileList');
+    const searchInput = document.getElementById('searchInput');
     let lastUpdateId = 0;
+    let filesData = [];
 
     // Drag and Drop
     const dropZone = document.getElementById('dropZone');
@@ -83,32 +187,48 @@
       e.preventDefault();
       dropZone.style.borderColor = '#4caf50';
       const files = e.dataTransfer.files;
-      if (files.length > 0) uploadFile(files[0]);
+      if (files.length > 0) uploadFiles(files);
     });
 
     fileInput.addEventListener('change', () => {
-      const file = fileInput.files[0];
-      if (file) uploadFile(file);
+      const files = fileInput.files;
+      if (files.length > 0) uploadFiles(files);
     });
 
-    function uploadFile(file) {
+    // अपलोड फाइल्स को मैनेज करना
+    function uploadFiles(files) {
+      Array.from(files).forEach(file => {
+        const category = categorySelect.value;
+        const progressId = `progress-${Math.random().toString(36).substr(2, 9)}`;
+        const progressHTML = `
+          <div id="${progressId}" class="progress">
+            <div class="bar" style="width: 0%"></div>
+          </div>
+        `;
+        progressContainer.innerHTML += progressHTML;
+        uploadFile(file, category, progressId);
+      });
+    }
+
+    // फाइल अपलोड करना
+    function uploadFile(file, category, progressId) {
       const formData = new FormData();
       formData.append('chat_id', chatId);
-      formData.append('document', file); // Can be photo, video, etc.
+      formData.append('document', file);
       const xhr = new XMLHttpRequest();
       xhr.open('POST', `https://api.telegram.org/bot${botToken}/sendDocument`);
       xhr.upload.onprogress = (e) => {
         const percent = (e.loaded / e.total) * 100;
-        progressBar.style.width = percent + '%';
+        document.querySelector(`#${progressId} .bar`).style.width = percent + '%';
       };
       xhr.onload = () => {
-        progressBar.style.width = '0%';
-        alert('✅ File Sent to Telegram!');
+        document.querySelector(`#${progressId}`).remove();
+        showNotification(`✅ File Uploaded: ${file.name}`);
       };
       xhr.send(formData);
     }
 
-    // Polling Telegram for new files
+    // टेलीग्राम से नई फाइल्स को पोल करना
     async function pollTelegram() {
       try {
         const res = await fetch(`https://api.telegram.org/bot${botToken}/getUpdates?offset=${lastUpdateId + 1}`);
@@ -117,7 +237,11 @@
           lastUpdateId = msg.update_id;
           if (msg.message?.document) {
             const fileId = msg.message.document.file_id;
-            autoDownload(fileId, msg.message.document.file_name);
+            const fileName = msg.message.document.file_name || 'Unnamed File';
+            const category = categorySelect.value || 'general';
+            filesData.push({ fileId, fileName, category });
+            addFileToList(fileId, fileName, category);
+            showNotification(`New file available: ${fileName}`);
           }
         });
       } catch (err) {
@@ -125,25 +249,92 @@
       }
     }
 
-    async function autoDownload(fileId, fileName = 'file') {
-      try {
-        const res1 = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`);
-        const data1 = await res1.json();
-        const filePath = data1.result.file_path;
-        const fileUrl = `https://api.telegram.org/file/bot${botToken}/${filePath}`;
+    // फाइल लिस्ट में जोड़ना और प्रीव्यू दिखाना
+    function addFileToList(fileId, fileName, category) {
+      const fileItem = document.createElement('div');
+      fileItem.classList.add('file-item');
+      fileItem.setAttribute('data-category', category);
+      fileItem.setAttribute('data-name', fileName.toLowerCase());
+      fileItem.innerHTML = `
+        <span class="file-name">${fileName} (${category})</span>
+        <button class="download-btn" onclick="downloadFile('${fileId}', '${fileName}')">Download</button>
+      `;
+      // फाइल प्रीव्यू
+      if (fileName.match(/\.(jpeg|jpg|png|gif)$/i)) {
+        const preview = document.createElement('img');
+        preview.src = `https://api.telegram.org/file/bot${botToken}/${fileId}`;
+        preview.classList.add('file-preview');
+        fileItem.appendChild(preview);
+      } else if (fileName.match(/\.pdf$/i)) {
+        const preview = document.createElement('iframe');
+        preview.src = `https://api.telegram.org/file/bot${botToken}/${fileId}`;
+        preview.classList.add('file-preview');
+        fileItem.appendChild(preview);
+      }
+      fileList.appendChild(fileItem);
+    }
 
+    // फाइल डाउनलोड करना
+    async function downloadFile(fileId, fileName) {
+      try {
+        const res = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`);
+        const data = await res.json();
+        const filePath = data.result.file_path;
+        const fileUrl = `https://api.telegram.org/file/bot${botToken}/${filePath}`;
         const link = document.createElement('a');
         link.href = fileUrl;
         link.download = fileName;
         document.body.appendChild(link);
         link.click();
         link.remove();
+        showNotification(`Downloading: ${fileName}`);
       } catch (err) {
         console.log('Download error:', err);
       }
     }
 
-    // Start polling every 3 seconds
+    // सर्च फंक्शनैलिटी
+    searchInput.addEventListener('input', () => {
+      const query = searchInput.value.toLowerCase();
+      document.querySelectorAll('.file-item').forEach(item => {
+        const name = item.getAttribute('data-name');
+        if (name.includes(query)) {
+          item.style.display = 'flex';
+        } else {
+          item.style.display = 'none';
+        }
+      });
+    });
+
+    // थीम टॉगल
+    function toggleTheme() {
+      if (document.body.classList.contains('light')) {
+        document.body.classList.remove('light');
+        localStorage.setItem('theme', 'dark');
+      } else {
+        document.body.classList.add('light');
+        localStorage.setItem('theme', 'light');
+      }
+    }
+
+    // सेव की गई थीम को चेक करना
+    if (localStorage.getItem('theme') === 'light') {
+      document.body.classList.add('light');
+    }
+
+    // नोटिफिकेशन परमिशन
+    if (Notification.permission !== 'granted') {
+      Notification.requestPermission();
+    }
+
+    // नोटिफिकेशन दिखाना
+    function showNotification(message) {
+      if (Notification.permission === 'granted') {
+        new Notification(message);
+      }
+    }
+
+    // हर 3 सेकंड में टेलीग्राम को पोल करना
     setInterval(pollTelegram, 3000);
   </script>
 </body>
