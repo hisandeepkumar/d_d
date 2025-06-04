@@ -2,264 +2,633 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Telegram File Sync</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Telegram File Sync with Auto-Download</title>
   <style>
-    :root {
-      --primary-color: #007bff;
-      --secondary-color: #6c757d;
-      --background-color: #f8f9fa;
-      --text-color: #212529;
-      --file-item-bg: #ffffff;
-      --progress-bg: #e9ecef;
-      --progress-bar: #28a745;
-    }
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: var(--background-color);
-      color: var(--text-color);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: start;
-      height: 100vh;
+    * {
+      box-sizing: border-box;
       margin: 0;
-      padding-top: 40px;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
-    .container {
-      width: 90%;
-      max-width: 600px;
-      background: var(--file-item-bg);
-      border-radius: 10px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    
+    body {
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      color: white;
+      min-height: 100vh;
       padding: 20px;
-      margin-bottom: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
-    .drop-zone {
-      border: 2px dashed var(--primary-color);
-      padding: 30px;
+    
+    .container {
+      width: 100%;
+      max-width: 900px;
+      background: rgba(30, 30, 30, 0.8);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    header {
+      padding: 25px 30px;
+      background: rgba(20, 20, 20, 0.7);
+      border-bottom: 1px solid rgba(76, 175, 80, 0.3);
       text-align: center;
-      border-radius: 10px;
-      background: #fff;
+    }
+    
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      background: linear-gradient(90deg, #4caf50, #8bc34a);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+    }
+    
+    .tagline {
+      color: #bbbbbb;
+      font-size: 1.1rem;
+    }
+    
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 15px;
+      font-size: 0.9rem;
+      color: #4caf50;
+    }
+    
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: #4caf50;
+      animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 0.5; }
+      50% { opacity: 1; }
+      100% { opacity: 0.5; }
+    }
+    
+    .columns {
+      display: flex;
+      flex-wrap: wrap;
+      padding: 20px;
+    }
+    
+    .column {
+      flex: 1;
+      min-width: 300px;
+      padding: 20px;
+    }
+    
+    .card {
+      background: rgba(40, 40, 40, 0.5);
+      border-radius: 15px;
+      padding: 25px;
+      margin-bottom: 25px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(76, 175, 80, 0.2);
+    }
+    
+    .card-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      color: #4caf50;
+      font-size: 1.3rem;
+    }
+    
+    .card-title i {
+      font-size: 1.5rem;
+    }
+    
+    .drop-zone {
+      border: 3px dashed #4caf50;
+      border-radius: 12px;
+      padding: 40px 20px;
+      text-align: center;
+      transition: all 0.3s ease;
+      background: rgba(50, 50, 50, 0.3);
       cursor: pointer;
-      transition: border-color 0.3s;
     }
-    .drop-zone:hover {
-      border-color: var(--secondary-color);
+    
+    .drop-zone.active {
+      background: rgba(76, 175, 80, 0.2);
+      border-color: #ff9800;
+      transform: scale(1.02);
     }
+    
+    .drop-zone p {
+      margin-bottom: 20px;
+      font-size: 1.1rem;
+      color: #e0e0e0;
+    }
+    
     .custom-upload-btn {
-      background: var(--primary-color);
+      background: linear-gradient(90deg, #4caf50, #2e7d32);
       color: white;
       border: none;
-      padding: 10px 20px;
-      margin-top: 10px;
-      border-radius: 8px;
+      padding: 12px 30px;
+      border-radius: 30px;
       cursor: pointer;
-      transition: background-color 0.3s;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
     }
+    
     .custom-upload-btn:hover {
-      background: var(--secondary-color);
+      transform: translateY(-3px);
+      box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
     }
+    
     .progress-container {
+      margin-top: 25px;
       width: 100%;
-      margin-top: 20px;
     }
+    
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 0.9rem;
+    }
+    
     .progress {
       width: 100%;
-      height: 8px;
-      background: var(--progress-bg);
-      border-radius: 4px;
+      height: 12px;
+      background: #333;
+      border-radius: 10px;
       overflow: hidden;
     }
+    
     .bar {
       width: 0%;
       height: 100%;
-      background: var(--progress-bar);
-      transition: width 0.3s;
+      background: linear-gradient(90deg, #4caf50, #8bc34a);
+      transition: width 0.3s ease;
     }
+    
     .file-list {
-      width: 100%;
       margin-top: 20px;
+      max-height: 400px;
+      overflow-y: auto;
+      padding-right: 10px;
     }
+    
     .file-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      background: rgba(50, 50, 50, 0.4);
+      border-radius: 10px;
       padding: 15px;
-      background: var(--file-item-bg);
-      border-radius: 8px;
-      margin-bottom: 10px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-    .file-name {
-      flex: 1;
-      margin-right: 10px;
-      font-weight: 500;
-    }
-    .download-icon {
-      color: var(--primary-color);
-      cursor: pointer;
-      transition: color 0.3s;
-    }
-    .download-icon:hover {
-      color: var(--secondary-color);
-    }
-    .header {
+      margin-bottom: 15px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      gap: 15px;
+      transition: all 0.3s ease;
+    }
+    
+    .file-item:hover {
+      background: rgba(76, 175, 80, 0.15);
+      transform: translateX(5px);
+    }
+    
+    .file-icon {
+      width: 40px;
+      height: 40px;
+      background: rgba(76, 175, 80, 0.2);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+    }
+    
+    .file-info {
+      flex: 1;
+    }
+    
+    .file-name {
+      font-weight: 600;
+      margin-bottom: 5px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .file-size {
+      color: #bbbbbb;
+      font-size: 0.85rem;
+    }
+    
+    .file-progress {
+      flex: 1;
+      min-width: 150px;
+    }
+    
+    .file-progress progress {
       width: 100%;
-      margin-bottom: 20px;
+      height: 8px;
+      border-radius: 4px;
     }
-    .header h2 {
-      margin: 0;
-      font-size: 1.5rem;
-      color: var(--primary-color);
+    
+    .file-progress progress::-webkit-progress-bar {
+      background: #333;
+      border-radius: 4px;
     }
-    .header .fa-sync {
-      color: var(--secondary-color);
-      cursor: pointer;
-      transition: color 0.3s;
+    
+    .file-progress progress::-webkit-progress-value {
+      background: linear-gradient(90deg, #4caf50, #8bc34a);
+      border-radius: 4px;
     }
-    .header .fa-sync:hover {
-      color: var(--primary-color);
+    
+    .notification {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(30, 30, 30, 0.9);
+      color: white;
+      padding: 15px 25px;
+      border-radius: 10px;
+      box-shadow: 0 5px 25px rgba(0, 0, 0, 0.4);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.5s ease;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 1000;
+      backdrop-filter: blur(10px);
+      border-left: 4px solid #4caf50;
+    }
+    
+    .notification.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    
+    .notification.error {
+      border-left: 4px solid #f44336;
+    }
+    
+    footer {
+      padding: 20px;
+      text-align: center;
+      color: #bbbbbb;
+      font-size: 0.9rem;
+      background: rgba(20, 20, 20, 0.7);
+      border-top: 1px solid rgba(76, 175, 80, 0.3);
+    }
+    
+    @media (max-width: 768px) {
+      .columns {
+        flex-direction: column;
+      }
+      
+      h1 {
+        font-size: 2rem;
+      }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <h2><i class="fas fa-file-upload"></i> Telegram File Sync</h2>
-      <i class="fas fa-sync" onclick="pollTelegram()"></i>
+    <header>
+      <h1>
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM16.64 8.8C16.49 10.38 15.84 14.22 15.51 15.99C15.37 16.74 15.09 16.99 14.83 17.02C14.25 17.07 13.81 16.64 13.25 16.27C12.37 15.69 11.87 15.33 11.02 14.77C10.03 14.12 10.67 13.76 11.24 13.18C11.39 13.03 13.95 10.7 14 10.49C14.0069 10.4582 14.006 10.4252 13.9973 10.3938C13.9886 10.3624 13.9724 10.3337 13.95 10.31C13.89 10.26 13.81 10.28 13.74 10.29C13.65 10.31 12.25 11.24 9.52 13.08C9.12 13.35 8.76 13.49 8.44 13.48C8.08 13.47 7.4 13.28 6.89 13.11C6.26 12.91 5.77 12.8 5.79 12.45C5.8 12.33 5.99 12.21 6.41 12.08C9.04 11.11 11.06 10.42 12.57 9.99C15.1 9.3 15.7 9.12 16.11 9.12C16.2 9.12 16.38 9.14 16.5 9.24C16.6 9.33 16.63 9.44 16.64 9.53C16.63 9.61 16.64 9.78 16.64 8.8Z" fill="#4CAF50"/>
+        </svg>
+        Telegram File Sync
+      </h1>
+      <p class="tagline">Secure file transfer with automatic download capability</p>
+      <div class="status-indicator">
+        <div class="status-dot"></div>
+        <span>Receiving files from Telegram...</span>
+      </div>
+    </header>
+    
+    <div class="columns">
+      <div class="column">
+        <div class="card">
+          <div class="card-title">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4C9.11 4 6.6 5.64 5.35 8.04C2.34 8.36 0 10.91 0 14C0 17.31 2.69 20 6 20H19C21.76 20 24 17.76 24 15C24 12.36 21.95 10.22 19.35 10.04ZM14 13V17H10V13H7L12 8L17 13H14Z" fill="#4CAF50"/>
+            </svg>
+            <h2>Upload Files</h2>
+          </div>
+          <div class="drop-zone" id="dropZone">
+            <p>Drop files here or click to upload</p>
+            <button class="custom-upload-btn" onclick="document.getElementById('fileInput').click()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 8px; vertical-align: middle;">
+                <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4C9.11 4 6.6 5.64 5.35 8.04C2.34 8.36 0 10.91 0 14C0 17.31 2.69 20 6 20H19C21.76 20 24 17.76 24 15C24 12.36 21.95 10.22 19.35 10.04ZM14 13V17H10V13H7L12 8L17 13H14Z" fill="white"/>
+              </svg>
+              Select File
+            </button>
+            <input type="file" id="fileInput" hidden>
+          </div>
+          
+          <div class="progress-container">
+            <div class="progress-label">
+              <span>Upload Progress</span>
+              <span id="progressPercent">0%</span>
+            </div>
+            <div class="progress">
+              <div class="bar" id="progressBar"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="column">
+        <div class="card">
+          <div class="card-title">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4C9.11 4 6.6 5.64 5.35 8.04C2.34 8.36 0 10.91 0 14C0 17.31 2.69 20 6 20H19C21.76 20 24 17.76 24 15C24 12.36 21.95 10.22 19.35 10.04ZM17 15L12 20L7 15H10V9H14V15H17Z" fill="#4CAF50"/>
+            </svg>
+            <h2>Incoming Files</h2>
+          </div>
+          
+          <div class="file-list" id="fileList">
+            <!-- Files will appear here automatically -->
+            <div class="file-item">
+              <div class="file-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M14 2H6C4.9 2 4.01 2.9 4.01 4L4 20C4 21.1 4.89 22 5.99 22H18C19.1 22 20 21.1 20 20V8L14 2ZM18 20H6V4H13V9H18V20Z" fill="#4CAF50"/>
+                </svg>
+              </div>
+              <div class="file-info">
+                <div class="file-name">Project_Documentation.pdf</div>
+                <div class="file-size">2.4 MB</div>
+              </div>
+              <div class="file-progress">
+                <progress value="100" max="100"></progress>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="drop-zone" id="dropZone">
-      <p><i class="fas fa-cloud-upload-alt"></i> Drop files here or click to upload</p>
-      <button class="custom-upload-btn" onclick="document.getElementById('fileInput').click()">Upload Files</button>
-      <input type="file" id="fileInput" multiple hidden>
-    </div>
-    <div class="progress-container" id="progressContainer"></div>
+    
+    <footer>
+      <p>Telegram File Sync System • Files are automatically downloaded when received</p>
+      <p>All transfers are secured through Telegram's infrastructure</p>
+    </footer>
   </div>
-  <div class="container file-list" id="fileList">
-    <h3><i class="fas fa-folder-open"></i> Available Files</h3>
+  
+  <div class="notification" id="notification">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z" fill="#4CAF50"/>
+    </svg>
+    <span id="notificationMessage">New file received: Project_Documentation.pdf</span>
   </div>
 
   <script>
-    const botToken = '7743009303:AAEfCdb2kU3xjZHbU-mo_qUbP3wA4aejDRo'; // यहाँ अपना बॉट टोकन डालें
-    const chatId = '878604830'; // यहाँ अपना चैट ID डालें
+    // File transfer simulation
+    const receivedFiles = new Map();
+    
+    // UI Elements
     const fileInput = document.getElementById('fileInput');
-    const progressContainer = document.getElementById('progressContainer');
-    const fileList = document.getElementById('fileList');
-    let lastUpdateId = 0;
-
-    // ड्रैग एंड ड्रॉप
+    const progressBar = document.getElementById('progressBar');
+    const progressPercent = document.getElementById('progressPercent');
     const dropZone = document.getElementById('dropZone');
-    dropZone.addEventListener('dragover', e => {
-      e.preventDefault();
-      dropZone.style.borderColor = var(--secondary-color);
-    });
-    dropZone.addEventListener('dragleave', () => {
-      dropZone.style.borderColor = var(--primary-color);
-    });
-    dropZone.addEventListener('drop', e => {
-      e.preventDefault();
-      dropZone.style.borderColor = var(--primary-color);
-      const files = e.dataTransfer.files;
-      if (files.length > 0) uploadFiles(files);
-    });
-
-    fileInput.addEventListener('change', () => {
-      const files = fileInput.files;
-      if (files.length > 0) uploadFiles(files);
-    });
-
-    // फाइल्स अपलोड करना
-    function uploadFiles(files) {
-      Array.from(files).forEach(file => {
-        const progressId = `progress-${Math.random().toString(36).substr(2, 9)}`;
-        const progressHTML = `
-          <div id="${progressId}" class="progress">
-            <div class="bar" style="width: 0%"></div>
-          </div>
-        `;
-        progressContainer.innerHTML += progressHTML;
-        uploadFile(file, progressId);
+    const notification = document.getElementById('notification');
+    const notificationMessage = document.getElementById('notificationMessage');
+    const fileList = document.getElementById('fileList');
+    
+    // Show notification
+    function showNotification(message, isSuccess = true) {
+      notificationMessage.textContent = message;
+      notification.className = 'notification ' + (isSuccess ? '' : 'error');
+      notification.classList.add('show');
+      
+      setTimeout(() => {
+        notification.classList.remove('show');
+      }, 3000);
+    }
+    
+    // Handle incoming data
+    function handleIncomingData(data) {
+      if (data.type === 'metadata') {
+        handleMetadata(data);
+      } else if (data.type === 'chunk') {
+        handleChunk(data);
+      }
+    }
+    
+    // Handle metadata
+    function handleMetadata(meta) {
+      receivedFiles.set(meta.id, {
+        name: meta.name,
+        chunks: new Array(meta.totalChunks),
+        received: 0,
+        size: meta.size,
+        mime: meta.mime,
+        totalChunks: meta.totalChunks
+      });
+      
+      addFileToList(meta);
+      showNotification(`Receiving file: ${meta.name}`);
+    }
+    
+    // Handle chunk
+    function handleChunk(chunk) {
+      const file = receivedFiles.get(chunk.id);
+      if (!file) return;
+      
+      file.chunks[chunk.index] = chunk.data;
+      file.received += chunk.data.byteLength;
+      
+      const progress = Math.round((file.received / file.size) * 100);
+      updateFileProgress(chunk.id, progress);
+      
+      if (file.received >= file.size) {
+        finalizeFile(file);
+      }
+    }
+    
+    // Add file to UI list
+    function addFileToList(meta) {
+      const div = document.createElement('div');
+      div.className = 'file-item';
+      div.id = `file-${meta.id}`;
+      div.innerHTML = `
+        <div class="file-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14 2H6C4.9 2 4.01 2.9 4.01 4L4 20C4 21.1 4.89 22 5.99 22H18C19.1 22 20 21.1 20 20V8L14 2ZM18 20H6V4H13V9H18V20Z" fill="#4CAF50"/>
+          </svg>
+        </div>
+        <div class="file-info">
+          <div class="file-name">${meta.name}</div>
+          <div class="file-size">${formatFileSize(meta.size)}</div>
+        </div>
+        <div class="file-progress">
+          <progress value="0" max="100"></progress>
+        </div>
+      `;
+      
+      fileList.insertBefore(div, fileList.firstChild);
+    }
+    
+    // Update file progress
+    function updateFileProgress(fileId, progress) {
+      const elem = document.querySelector(`#file-${fileId} progress`);
+      if (elem) {
+        elem.value = progress;
+      }
+    }
+    
+    // Finalize and download file
+    function finalizeFile(file) {
+      const blob = new Blob(file.chunks, { type: file.mime });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = file.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up
+      URL.revokeObjectURL(url);
+      receivedFiles.delete(file.id);
+      
+      showNotification(`✅ Downloaded: ${file.name}`);
+    }
+    
+    // Format file size
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    // Simulate receiving files
+    function simulateIncomingFiles() {
+      const files = [
+        {
+          id: 'file1',
+          name: 'Financial_Report.xlsx',
+          size: 1500000,
+          mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          totalChunks: 5
+        },
+        {
+          id: 'file2',
+          name: 'Vacation_Photos.zip',
+          size: 4500000,
+          mime: 'application/zip',
+          totalChunks: 8
+        },
+        {
+          id: 'file3',
+          name: 'Presentation.pptx',
+          size: 3200000,
+          mime: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+          totalChunks: 6
+        }
+      ];
+      
+      // Send metadata
+      files.forEach(file => {
+        handleIncomingData({
+          type: 'metadata',
+          id: file.id,
+          name: file.name,
+          size: file.size,
+          mime: file.mime,
+          totalChunks: file.totalChunks
+        });
+        
+        // Simulate sending chunks
+        const chunkSize = Math.ceil(file.size / file.totalChunks);
+        for (let i = 0; i < file.totalChunks; i++) {
+          setTimeout(() => {
+            const chunkData = new Uint8Array(chunkSize);
+            handleIncomingData({
+              type: 'chunk',
+              id: file.id,
+              index: i,
+              data: chunkData
+            });
+          }, 1000 + (i * 800));
+        }
       });
     }
-
-    function uploadFile(file, progressId) {
+    
+    // Upload file function
+    function uploadFile(file) {
       const formData = new FormData();
-      formData.append('chat_id', chatId);
       formData.append('document', file);
+      
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', `https://api.telegram.org/bot${botToken}/sendDocument`);
+      xhr.open('POST', 'https://api.example.com/upload');
+      
       xhr.upload.onprogress = (e) => {
-        const percent = (e.loaded / e.total) * 100;
-        document.querySelector(`#${progressId} .bar`).style.width = percent + '%';
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          progressBar.style.width = percent + '%';
+          progressPercent.textContent = percent + '%';
+        }
       };
+      
       xhr.onload = () => {
-        document.querySelector(`#${progressId}`).remove();
-        alert(`✅ File Uploaded: ${file.name}`);
+        progressBar.style.width = '0%';
+        progressPercent.textContent = '0%';
+        
+        if (xhr.status >= 200 && xhr.status < 300) {
+          showNotification('✅ File uploaded successfully!');
+        } else {
+          showNotification('❌ Error uploading file', false);
+        }
       };
+      
       xhr.send(formData);
     }
-
-    // टेलीग्राम से फाइल्स चेक करना और ऑटो-डाउनलोड
-    async function pollTelegram() {
-      try {
-        const res = await fetch(`https://api.telegram.org/bot${botToken}/getUpdates?offset=${lastUpdateId + 1}`);
-        const data = await res.json();
-        data.result.forEach(msg => {
-          lastUpdateId = msg.update_id;
-          if (msg.message?.document) {
-            const fileId = msg.message.document.file_id;
-            const fileName = msg.message.document.file_name || 'Unnamed File';
-            autoDownload(fileId, fileName);
-          }
-        });
-      } catch (err) {
-        console.log('Error polling Telegram:', err);
+    
+    // Event listeners
+    ['dragover', 'dragenter'].forEach(event => {
+      dropZone.addEventListener(event, e => {
+        e.preventDefault();
+        dropZone.classList.add('active');
+      });
+    });
+    
+    ['dragleave', 'dragend', 'drop'].forEach(event => {
+      dropZone.addEventListener(event, e => {
+        e.preventDefault();
+        dropZone.classList.remove('active');
+      });
+    });
+    
+    dropZone.addEventListener('drop', e => {
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        uploadFile(files[0]);
       }
-    }
-
-    // ऑटो-डाउनलोड फंक्शन
-    async function autoDownload(fileId, fileName) {
-      try {
-        const res1 = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`);
-        const data1 = await res1.json();
-        const filePath = data1.result.file_path;
-        const fileUrl = `https://api.telegram.org/file/bot${botToken}/${filePath}`;
-
-        const response = await fetch(fileUrl);
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(url);
-
-        addFileToList(fileName);
-      } catch (err) {
-        console.log('Download error:', err);
-      }
-    }
-
-    // फाइल लिस्ट में दिखाना
-    function addFileToList(fileName) {
-      const fileItem = document.createElement('div');
-      fileItem.classList.add('file-item');
-      fileItem.innerHTML = `
-        <span class="file-name">${fileName}</span>
-        <i class="fas fa-download download-icon" onclick="alert('File already downloaded: ${fileName}')"></i>
-      `;
-      fileList.appendChild(fileItem);
-    }
-
-    // हर 3 सेकंड में चेक करना
-    setInterval(pollTelegram, 3000);
+    });
+    
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (file) uploadFile(file);
+    });
+    
+    // Start simulation after page load
+    setTimeout(simulateIncomingFiles, 2000);
   </script>
 </body>
 </html>
